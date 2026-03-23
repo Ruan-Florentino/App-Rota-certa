@@ -1,0 +1,5 @@
+{
+  "name": "RotaCerta",
+  "description": "Super app de viagens premium com roteiros inteligentes baseados em dados reais de voos, hotéis, clima e câmbio, com controle financeiro e experiência mobile-first absoluta.",
+  "requestFramePermissions": ["geolocation"]
+}
