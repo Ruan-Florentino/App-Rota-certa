@@ -1,0 +1,44 @@
+{
+  "name": "Right Way",
+  "short_name": "RightWay",
+  "description": "Your journey starts here",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#030712",
+  "theme_color": "#030712",
+  "lang": "en-US",
+  "dir": "ltr",
+  "scope": "/",
+  "categories": ["travel", "lifestyle", "social"],
+  
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  
+  "shortcuts": [
+    {
+      "name": "Create Trip",
+      "short_name": "Create",
+      "url": "/create",
+      "icons": [{ "src": "/icons/shortcut-create.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Explore",
+      "short_name": "Explore",
+      "url": "/explore",
+      "icons": [{ "src": "/icons/shortcut-explore.png", "sizes": "96x96" }]
+    }
+  ]
+}

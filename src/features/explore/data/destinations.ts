@@ -1,0 +1,5 @@
+export const destinations: any[] = [
+  { id: 'tokyo', name: 'Tóquio', country: 'Japão', countryCode: '🇯🇵', continent: 'Ásia', image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=800&q=80', tags: ['cultural', 'gastronomia', 'urbano'], stats: { avgBudget: 8000, bestMonth: 'Abril', flightHours: 24, temperature: 18, currency: 'JPY' } },
+  { id: 'paris', name: 'Paris', country: 'França', countryCode: '🇫🇷', continent: 'Europa', image: 'https://images.unsplash.com/photo-1502602898657-34917651c37d?auto=format&fit=crop&w=800&q=80', tags: ['cultural', 'gastronomia'], stats: { avgBudget: 9000, bestMonth: 'Junho', flightHours: 12, temperature: 20, currency: 'EUR' } },
+  { id: 'bali', name: 'Bali', country: 'Indonésia', countryCode: '🇮🇩', continent: 'Ásia', image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80', tags: ['praia', 'natureza', 'relax'], stats: { avgBudget: 5000, bestMonth: 'Maio', flightHours: 20, temperature: 28, currency: 'IDR' } },
+];

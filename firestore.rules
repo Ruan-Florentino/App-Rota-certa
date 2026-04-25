@@ -1,46 +1,183 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper Functions
-    function isAuthenticated() {
-      return request.auth != null;
+    
+    // ============================================
+    // GLOBAL HELPERS
+    // ============================================
+    
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isEmailVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
     }
     
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+    function isImmutable(field) {
+      return !(field in incoming().diff(existing()).affectedKeys());
     }
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ============================================
+    // USERS
+    // ============================================
     
-    function isDocOwner() {
-      return isAuthenticated() && request.auth.uid == resource.data.userId;
-    }
-
-    function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'email']) &&
-             data.uid is string &&
-             data.email is string;
-    }
-
-    function isValidTrip(data) {
-      return data.keys().hasAll(['userId', 'destination', 'itinerary']) &&
-             data.userId == request.auth.uid &&
-             data.destination is string &&
-             data.destination.size() < 200 &&
-             data.itinerary is list;
-    }
-
-    // User Profiles
     match /users/{userId} {
-      allow read: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(request.resource.data);
-      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      function isValidUser(data) {
+        return data.uid is string && data.uid.size() <= 128
+          && data.email is string && data.email.size() <= 256
+          && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128))
+          && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 512))
+          && (!('bio' in data) || (data.bio is string && data.bio.size() <= 500))
+          && (!('location' in data) || (data.location is string && data.location.size() <= 128))
+          && (!('isPro' in data) || (data.isPro is bool))
+          && (!('travelInterests' in data) || (data.travelInterests is list && data.travelInterests.size() <= 20));
+      }
+
+      allow get: if isSignedIn();
+      allow list: if false; 
+
+      allow create: if isOwner(userId) 
+        && isValidUser(incoming())
+        && incoming().uid == request.auth.uid;
+        
+      allow update: if isOwner(userId)
+        && isValidUser(incoming())
+        && isImmutable('uid')
+        && isImmutable('email');
     }
 
-    // Trips
+    // ============================================
+    // TRIPS
+    // ============================================
+    
     match /trips/{tripId} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid);
-      allow create: if isAuthenticated() && isValidTrip(request.resource.data);
-      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid) && isValidTrip(request.resource.data);
-      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid);
+      function isValidTrip(data) {
+        return data.userId is string && data.userId.size() <= 128
+          && data.destination is string && data.destination.size() <= 256
+          && data.itinerary is list && data.itinerary.size() <= 50
+          && (!('isPublic' in data) || (data.isPublic is bool))
+          && (!('budget' in data) || (data.budget is number));
+      }
+
+      allow get: if isValidId(tripId) && (
+        existing().isPublic == true || isOwner(existing().userId)
+      );
+      
+      allow list: if isSignedIn() && (
+        resource.data.isPublic == true || isOwner(resource.data.userId)
+      );
+
+      allow create: if isSignedIn()
+        && isValidTrip(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == request.time;
+        
+      allow update: if isOwner(existing().userId)
+        && isValidTrip(incoming())
+        && isImmutable('userId')
+        && isImmutable('createdAt');
+        
+      allow delete: if isOwner(existing().userId);
+    }
+
+    // ============================================
+    // NOTIFICATIONS
+    // ============================================
+    
+    match /notifications/{userId} {
+      allow read: if isOwner(userId);
+      
+      match /items/{notificationId} {
+        function isValidNotification(data) {
+          return data.type in ['like', 'clone', 'reminder', 'tip']
+            && data.message is string && data.message.size() <= 500
+            && data.read is bool;
+        }
+
+        allow read, list: if isOwner(userId);
+        
+        allow create: if isSignedIn() // Notifications can be created by system/others (like likes)
+          && isValidNotification(incoming())
+          && incoming().read == false
+          && incoming().createdAt == request.time;
+          
+        allow update: if isOwner(userId)
+          && (
+            // Only allow marking as read
+            incoming().diff(existing()).affectedKeys().hasOnly(['read'])
+            && incoming().read is bool
+          );
+          
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // ============================================
+    // SOCIAL POSTS
+    // ============================================
+    
+    match /social_posts/{postId} {
+      function isValidPost(data) {
+        return data.userId is string && data.userId.size() <= 128
+          && data.content is string && data.content.size() <= 1000
+          && (!('media' in data) || (data.media is list && data.media.size() <= 10))
+          && (!('location' in data) || (data.location is string && data.location.size() <= 128));
+      }
+
+      allow get: if isValidId(postId);
+      allow list: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && isValidPost(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == request.time;
+        
+      allow update: if isSignedIn() && (
+        (isOwner(existing().userId) && isValidPost(incoming()) && isImmutable('userId') && isImmutable('createdAt'))
+        || (incoming().diff(existing()).affectedKeys().hasOnly(['likes', 'comments', 'shares', 'saves'])) // Sync counters
+      );
+      
+      allow delete: if isOwner(existing().userId);
+
+      match /likes/{userId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId) && isValidId(postId);
+      }
+    }
+
+    // ============================================
+    // STORIES
+    // ============================================
+    
+    match /stories/{storyId} {
+      function isValidStory(data) {
+        return data.userId is string && data.userId.size() <= 128
+          && data.media is string && data.media.size() <= 512;
+      }
+
+      allow get: if isValidId(storyId) && resource.data.createdAt > request.time - duration.value(24, 'h');
+      allow list: if isSignedIn(); 
+
+      allow create: if isSignedIn()
+        && isValidStory(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == request.time;
+        
+      allow delete: if isOwner(existing().userId);
+    }
+    
+    // Helpers for specific lookups
+    function isValidUserExist(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid));
     }
   }
 }

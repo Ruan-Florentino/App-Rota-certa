@@ -1,0 +1,90 @@
+/* ============================================
+   AIRLINE LOGO
+============================================ */
+
+.airline-logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.airline-logo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FFFFFF;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+/* Variants */
+.airline-logo-default {
+  border-radius: 8px;
+}
+
+.airline-logo-rounded {
+  border-radius: 12px;
+}
+
+.airline-logo-square {
+  border-radius: 4px;
+}
+
+.airline-logo-circle {
+  border-radius: 50%;
+}
+
+/* Image inside logo */
+.airline-logo img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Sizes */
+.airline-logo-sm img { width: 75%; height: 75%; }
+.airline-logo-md img { width: 78%; height: 78%; }
+.airline-logo-lg img { width: 80%; height: 80%; }
+.airline-logo-xl img { width: 82%; height: 82%; }
+
+/* Initials fallback */
+.airline-logo-initials {
+  font-family: var(--font-display, 'Inter', sans-serif);
+  font-weight: 800;
+  font-size: 0.45em;
+  color: white;
+  letter-spacing: -0.02em;
+}
+
+.airline-logo-sm .airline-logo-initials { font-size: 12px; }
+.airline-logo-md .airline-logo-initials { font-size: 16px; }
+.airline-logo-lg .airline-logo-initials { font-size: 22px; }
+.airline-logo-xl .airline-logo-initials { font-size: 32px; }
+
+/* Info ao lado */
+.airline-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.airline-name {
+  font-family: var(--font-heading, 'Inter', sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.01em;
+}
+
+.airline-code {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.08em;
+}

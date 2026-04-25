@@ -1,0 +1,24 @@
+DEAD CODE REPORT - POST-CLEANUP
+Date: 2026-04-21
+Status: CLEAN
+
+Unused exports found: 0
+Unused components deleted:
+- StartMenu.tsx
+- DestinationCarousel.tsx
+- SpaceBackground.tsx
+- QuickActionButton.tsx
+- PreloadLink.tsx
+- SearchDestino.tsx
+- HeaderMobile (MobileUI utility)
+
+Unused services deleted:
+- parseTripIntent (geminiService)
+- generateTravelTip (geminiService)
+- generateJournalTitle (geminiService)
+- generateLocalExperience (geminiService)
+- generateItinerary (geminiService)
+
+Unused Icons deleted:
+- CoreIcons.tsx
+- MiscIcons.tsx

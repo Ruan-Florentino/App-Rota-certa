@@ -9,6 +9,10 @@
         "email": { "type": "string" },
         "displayName": { "type": "string" },
         "photoURL": { "type": "string" },
+        "bio": { "type": "string" },
+        "location": { "type": "string" },
+        "isPro": { "type": "boolean" },
+        "travelInterests": { "type": "array" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email"]
@@ -23,12 +27,57 @@
         "startDate": { "type": "string", "format": "date-time" },
         "endDate": { "type": "string", "format": "date-time" },
         "budget": { "type": "number" },
-        "type": { "type": "string" },
         "itinerary": { "type": "array" },
-        "costs": { "type": "object" },
+        "isPublic": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "destination", "itinerary"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "System or social notification for a user.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["like", "clone", "reminder", "tip"] },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "message", "read", "createdAt"]
+    },
+    "SocialPost": {
+      "title": "SocialPost",
+      "description": "A post in the travel social feed.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
+        "content": { "type": "string" },
+        "media": { "type": "array" },
+        "likes": { "type": "number" },
+        "comments": { "type": "number" },
+        "shares": { "type": "number" },
+        "saves": { "type": "number" },
+        "location": { "type": "string" },
+        "tripId": { "type": "string" },
+        "isPro": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userName", "content", "createdAt"]
+    },
+    "Story": {
+      "title": "Story",
+      "description": "A temporary story (24h).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
+        "media": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userName", "media", "createdAt"]
     }
   },
   "firestore": {
@@ -39,6 +88,22 @@
     "/trips/{tripId}": {
       "schema": "Trip",
       "description": "Saved travel itineraries."
+    },
+    "/notifications/{userId}/items/{notificationId}": {
+      "schema": "Notification",
+      "description": "User notifications."
+    },
+    "/social_posts/{postId}": {
+      "schema": "SocialPost",
+      "description": "Social feed posts."
+    },
+    "/social_posts/{postId}/likes/{userId}": {
+      "schema": { "type": "object", "properties": { "createdAt": { "type": "string" } } },
+      "description": "Post likes."
+    },
+    "/stories/{storyId}": {
+      "schema": "Story",
+      "description": "Temporary stories."
     }
   }
 }

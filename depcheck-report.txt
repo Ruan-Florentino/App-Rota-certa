@@ -1,0 +1,19 @@
+DEPCHECK REPORT - POST-CLEANUP
+Date: 2026-04-21
+Status: CLEAN
+
+Unused dependencies found: 0
+Ghost dependencies found: 0
+
+Removed in this phase:
+- @use-gesture/react
+- clsx
+- date-fns
+- dotenv
+- gsap
+- lodash
+- react-countup
+- tailwind-merge
+- depcheck
+- pino-pretty
+- ts-prune

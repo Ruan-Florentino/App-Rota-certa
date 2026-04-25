@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -7,12 +8,14 @@ export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
     plugins: [react(), tailwindcss()],
-    define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      setupFiles: ['./src/test/setup.ts'],
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, './src'),
       },
     },
     server: {
@@ -21,5 +24,22 @@ export default defineConfig(({mode}) => {
       port: 3000,
       strictPort: true,
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/three') || id.includes('node_modules/react-globe.gl')) {
+              return 'vendor-3d';
+            }
+            if (id.includes('node_modules/maplibre-gl')) {
+              return 'vendor-maps';
+            }
+            if (id.includes('node_modules/@google/genai')) {
+              return 'vendor-ai';
+            }
+          }
+        }
+      }
+    }
   };
 });

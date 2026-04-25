@@ -1,369 +1,301 @@
-import React from 'react';
-import { 
-  MapPin, 
-  Search, 
-  Navigation, 
-  Plus, 
-  Minus, 
-  LocateFixed, 
-  Star, 
-  DollarSign, 
-  ArrowRight,
-  Sparkles,
-  Hotel,
-  Camera,
-  Utensils,
-  Plane,
-  Filter,
-  Globe,
-  Palmtree,
-  Snowflake,
-  Heart
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useStore } from '../store/useStore';
-import { SearchDestino, CitySuggestion } from '../components/SearchDestino';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
-import MarkerClusterGroup from 'react-leaflet-cluster';
-import L from 'leaflet';
-import { getPlacesNearby, Place } from '../services/placeService';
-import { getCityImage } from '../services/imageService';
 import { motion, AnimatePresence } from 'motion/react';
-import { MobileContainer, BlurCard, GlowButton } from '../components/MobileUI';
+import { MobileContainer } from '../components/MobileUI';
+import { Globe3D } from '../components/Globe3D';
+import { Map2D } from '../components/Map2D';
+import { ChevronLeft, Map as MapIcon, Globe, Search } from 'lucide-react';
 
-// Fix for default marker icon in Leaflet + React
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import { getDynamicImage, geocodePlace } from '../services/imageService';
 
-let DefaultIcon = L.icon({
-    iconUrl: markerIcon,
-    shadowUrl: markerShadow,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41]
-});
-
-L.Marker.prototype.options.icon = DefaultIcon;
-
-// Premium Cities Data
-const PREMIUM_CITIES = [
-  { id: 'paris', name: 'Paris', country: 'França', price: 3200, days: 7, lat: 48.8566, lng: 2.3522, category: 'Internacional' },
-  { id: 'santiago', name: 'Santiago', country: 'Chile', price: 1800, days: 5, lat: -33.4489, lng: -70.6693, category: 'Neve' },
-  { id: 'buenos-aires', name: 'Buenos Aires', country: 'Argentina', price: 1500, days: 4, lat: -34.6037, lng: -58.3816, category: 'Romântico' },
-  { id: 'tokyo', name: 'Tokyo', country: 'Japão', price: 4500, days: 10, lat: 35.6762, lng: 139.6503, category: 'Internacional' },
-  { id: 'dubai', name: 'Dubai', country: 'EAU', price: 3800, days: 6, lat: 25.2048, lng: 55.2708, category: 'Internacional' },
-  { id: 'rio', name: 'Rio de Janeiro', country: 'Brasil', price: 1200, days: 5, lat: -22.9068, lng: -43.1729, category: 'Praia' },
-  { id: 'lisboa', name: 'Lisboa', country: 'Portugal', price: 2800, days: 6, lat: 38.7223, lng: -9.1393, category: 'Internacional' },
-  { id: 'roma', name: 'Roma', country: 'Itália', price: 3000, days: 7, lat: 41.9028, lng: 12.4964, category: 'Romântico' },
-  { id: 'barcelona', name: 'Barcelona', country: 'Espanha', price: 2900, days: 6, lat: 41.3851, lng: 2.1734, category: 'Praia' },
-  { id: 'new-york', name: 'New York', country: 'EUA', price: 4200, days: 8, lat: 40.7128, lng: -74.0060, category: 'Internacional' },
-];
-
-// Custom Price Bubble Pin
-const createPricePin = (price: number, isActive: boolean = false) => {
-  const color = isActive ? '#00FFA3' : '#00E5FF';
-  const glow = isActive ? 'rgba(0, 255, 163, 0.6)' : 'rgba(0, 229, 255, 0.6)';
-
-  return L.divIcon({
-    html: `
-      <div class="relative -translate-x-1/2 -translate-y-1/2 group">
-        <div class="px-3 py-1.5 rounded-full bg-[#020B1A] border-2 border-[${color}] flex items-center justify-center shadow-[0_0_15px_${glow}] transition-all duration-300 group-hover:scale-110" style="color: ${color}; border-color: ${color}; box-shadow: 0 0 15px ${glow};">
-          <span class="text-[11px] font-black tracking-tighter">R$ ${price}</span>
-        </div>
-        <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#020B1A] border-r-2 border-b-2 border-[${color}] rotate-45" style="border-color: ${color};"></div>
-      </div>
-    `,
-    className: 'price-bubble-icon',
-    iconSize: [0, 0],
-    iconAnchor: [0, 0]
-  });
-};
-
-// User Location Icon
-const userIcon = L.divIcon({
-  html: `
-    <div class="relative">
-      <div class="w-4 h-4 bg-primary rounded-full border-2 border-white shadow-[0_0_10px_rgba(0,229,255,0.8)]"></div>
-      <div class="absolute inset-0 w-4 h-4 bg-primary rounded-full animate-ping opacity-50"></div>
-    </div>
-  `,
-  className: 'user-location-icon',
-  iconSize: [16, 16],
-  iconAnchor: [8, 8]
-});
-
-const MapControls: React.FC<{ 
-  onZoomIn: () => void; 
-  onZoomOut: () => void; 
-  onLocate: () => void;
-  onCenter: () => void;
-}> = ({ onZoomIn, onZoomOut, onLocate, onCenter }) => {
-  return (
-    <div className="absolute right-6 bottom-32 flex flex-col gap-3 z-[1000]">
-      <button 
-        onClick={onLocate}
-        className="w-12 h-12 glass-card rounded-2xl flex items-center justify-center text-primary shadow-2xl active:scale-95 transition-all"
-      >
-        <LocateFixed className="w-6 h-6" />
-      </button>
-      <button 
-        onClick={onCenter}
-        className="w-12 h-12 glass-card rounded-2xl flex items-center justify-center text-accent shadow-2xl active:scale-95 transition-all"
-      >
-        <Navigation className="w-6 h-6" />
-      </button>
-      <div className="flex flex-col glass-card rounded-2xl overflow-hidden shadow-2xl">
-        <button 
-          onClick={onZoomIn}
-          className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/5 active:bg-white/10 transition-all"
-        >
-          <Plus className="w-6 h-6" />
-        </button>
-        <div className="h-[1px] bg-white/10 mx-3" />
-        <button 
-          onClick={onZoomOut}
-          className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/5 active:bg-white/10 transition-all"
-        >
-          <Minus className="w-6 h-6" />
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const MapUpdater: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
-  const map = useMap();
-  React.useEffect(() => {
-    map.setView(center, zoom, { animate: true, duration: 1 });
-  }, [center, zoom, map]);
-  return null;
-};
+import { MAP_DESTINATIONS, FLIGHT_ROUTES } from '../data/mapDestinations';
 
 export const MapScreen: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentTrip, setCurrentTrip } = useStore();
-  const [searchValue, setSearchValue] = React.useState('');
-  const [mapCenter, setMapCenter] = React.useState<[number, number]>([20, 0]); // Global view
-  const [zoom, setZoom] = React.useState(3);
-  const [userLocation, setUserLocation] = React.useState<[number, number] | null>(null);
   const [selectedCity, setSelectedCity] = React.useState<any | null>(null);
-  const [activeFilter, setActiveFilter] = React.useState('all');
-  const [cityImage, setCityImage] = React.useState<string | null>(null);
+  const [customPoints, setCustomPoints] = useState<any[]>([]);
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingItinerary, setIsLoadingItinerary] = useState(false);
 
-  const FILTERS = [
-    { id: 'all', label: 'Explorar', icon: <Globe className="w-4 h-4" /> },
-    { id: 'Barato', label: 'Barato', icon: <DollarSign className="w-4 h-4" /> },
-    { id: 'Internacional', label: 'Internacional', icon: <Globe className="w-4 h-4" /> },
-    { id: 'Praia', label: 'Praia', icon: <Palmtree className="w-4 h-4" /> },
-    { id: 'Neve', label: 'Neve', icon: <Snowflake className="w-4 h-4" /> },
-    { id: 'Romântico', label: 'Romântico', icon: <Heart className="w-4 h-4" /> },
-  ];
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      // Tenta primeiro no nosso banco local de +80 destinos
+      const localMatch = MAP_DESTINATIONS.find(d => 
+        d.cityName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        d.country.toLowerCase().includes(searchQuery.toLowerCase())
+      );
 
-  const filteredCities = PREMIUM_CITIES.filter(city => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'Barato') return city.price < 2000;
-    return city.category === activeFilter;
-  });
+      if (localMatch) {
+        const newPoint = {
+          id: localMatch.id,
+          lat: localMatch.lat,
+          lng: localMatch.lng,
+          name: localMatch.cityName,
+          country: localMatch.country,
+          price: `R$ ${localMatch.price}`,
+          image: localMatch.image,
+          type: 'default'
+        };
+        setCustomPoints(prev => [newPoint, ...prev.filter(p => p.id !== newPoint.id)]);
+        setSelectedCity(newPoint);
+        setIsSearching(false);
+        return;
+      }
 
-  React.useEffect(() => {
-    if (selectedCity) {
-      getCityImage(selectedCity.name, selectedCity.country).then(setCityImage);
+      // Se não achar local, busca na API externa
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`);
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const newPoint = {
+          id: Date.now().toString(),
+          lat: parseFloat(data[0].lat),
+          lng: parseFloat(data[0].lon),
+          name: data[0].display_name.split(',')[0],
+          country: data[0].display_name.split(',').pop()?.trim(),
+          type: 'default',
+          image: '',
+        };
+        
+        try {
+          newPoint.image = await getDynamicImage(newPoint.name, 'city', newPoint.name, newPoint.country);
+        } catch (e) {}
+
+        setCustomPoints(prev => [newPoint, ...prev]);
+        setSelectedCity(newPoint);
+      }
+    } catch (error) {
+      console.error('Error searching location:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleLocationSelect = (loc: any) => {
+    setSelectedCity(loc);
+  };
+
+  useEffect(() => {
+    const loadDefaultPoints = async () => {
+      // Converte MAP_DESTINATIONS para o formato que o mapa espera
+      const points = MAP_DESTINATIONS.map(d => ({
+        id: d.id,
+        lat: d.lat,
+        lng: d.lng,
+        name: d.cityName,
+        country: d.country,
+        price: `R$ ${d.price}`,
+        image: d.image,
+        type: d.category === 'historical' ? 'attraction' : d.category === 'beach' ? 'hotel' : 'default',
+        rating: d.rating,
+        tagline: d.tagline
+      }));
+      
+      setCustomPoints(points);
+    };
+
+    if (location.state?.hotel) {
+      const hotel = location.state.hotel;
+      
+      const fetchCoords = async () => {
+        try {
+          const query = `${hotel.name}, ${hotel.location}`;
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+          const data = await response.json();
+          
+          if (data && data.length > 0) {
+            setCustomPoints([{
+              id: '1',
+              lat: parseFloat(data[0].lat),
+              lng: parseFloat(data[0].lon),
+              name: hotel.name,
+              country: hotel.location,
+              price: `R$ ${hotel.price}`,
+              image: hotel.image,
+              type: 'hotel'
+            }]);
+          } else {
+            // Fallback to just city
+            const cityResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(hotel.location)}`);
+            const cityData = await cityResponse.json();
+            if (cityData && cityData.length > 0) {
+              setCustomPoints([{
+                id: '1',
+                lat: parseFloat(cityData[0].lat),
+                lng: parseFloat(cityData[0].lon),
+                name: hotel.name,
+                country: hotel.location,
+                price: `R$ ${hotel.price}`,
+                image: hotel.image,
+                type: 'hotel'
+              }]);
+            }
+          }
+        } catch (error) {
+          console.error('Error geocoding hotel:', error);
+        }
+      };
+      
+      fetchCoords();
+    } else if (location.state?.itinerary) {
+      const itinerary = location.state.itinerary;
+      const destination = location.state.destination;
+      
+      const fetchItineraryCoords = async () => {
+        setIsLoadingItinerary(true);
+        const points: any[] = [];
+        
+        // First, get the destination center
+        let destLat = 0, destLng = 0;
+        try {
+          const destCoords = await geocodePlace(destination);
+          if (destCoords) {
+            destLat = destCoords.lat;
+            destLng = destCoords.lng;
+          }
+        } catch (e) {}
+
+        for (const day of itinerary) {
+          for (const act of day.activities) {
+            const query = `${act.placeName || act.activity}, ${destination}`;
+            let lat = destLat;
+            let lng = destLng;
+            
+            try {
+              // Add a small random offset if we can't geocode exactly, so pins don't overlap perfectly
+              const coords = await geocodePlace(query);
+              if (coords) {
+                lat = coords.lat;
+                lng = coords.lng;
+              } else {
+                lat += (Math.random() - 0.5) * 0.05;
+                lng += (Math.random() - 0.5) * 0.05;
+              }
+            } catch (error) {
+              lat += (Math.random() - 0.5) * 0.05;
+              lng += (Math.random() - 0.5) * 0.05;
+            }
+
+            points.push({
+              id: `${day.day}-${act.activity}`,
+              lat,
+              lng,
+              name: act.activity,
+              country: `Dia ${day.day} - ${act.time}`,
+              price: `R$ ${act.cost}`,
+              image: act.image,
+              type: act.category === 'restaurante' ? 'hotel' : 'attraction',
+              description: act.description
+            });
+          }
+        }
+        setCustomPoints(points);
+        setIsLoadingItinerary(false);
+      };
+      
+      fetchItineraryCoords();
     } else {
-      setCityImage(null);
+      // Load some default points if no specific hotel is passed
+      loadDefaultPoints();
     }
-  }, [selectedCity]);
+  }, [location.state]);
 
-  // Get user location
-  const handleLocate = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const coords: [number, number] = [position.coords.latitude, position.coords.longitude];
-        setUserLocation(coords);
-        setMapCenter(coords);
-        setZoom(15);
-      });
-    }
-  };
-
-  const handleSelectCity = (city: CitySuggestion) => {
-    setSearchValue(`${city.name}, ${city.country}`);
-    setMapCenter([city.lat, city.lng]);
-    setZoom(13);
-    setSelectedCity(null);
-  };
-
-  const handlePlanTrip = (city: any) => {
-    navigate('/plan', { state: { destination: `${city.name}, ${city.country}` } });
-  };
+  const globeCenter = React.useMemo(() => {
+    return customPoints?.[0] ? { lat: customPoints[0].lat, lng: customPoints[0].lng } : undefined;
+  }, [customPoints]);
 
   return (
-    <MobileContainer className="p-0 overflow-hidden h-screen">
-      {/* Search Header */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-6 pt-12 bg-gradient-to-b from-background via-background/80 to-transparent">
-        <div className="max-w-[420px] mx-auto space-y-4">
-          <SearchDestino 
-            value={searchValue}
-            onChange={setSearchValue}
-            onSelect={handleSelectCity}
-            placeholder="Buscar cidade no mundo..."
-            className="shadow-2xl"
-          />
-          
-          {/* Filters */}
-          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-            {FILTERS.map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setActiveFilter(f.id)}
-                className={`flex items-center gap-2 px-4 h-10 rounded-full whitespace-nowrap transition-all active:scale-95 ${
-                  activeFilter === f.id 
-                    ? 'bg-primary text-background font-black shadow-[0_0_15px_rgba(0,229,255,0.4)]' 
-                    : 'glass-card text-white/70 font-bold border border-white/5'
-                }`}
-              >
-                {f.icon}
-                <span className="text-[12px]">{f.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Map */}
-      <div className="w-full h-full relative z-0">
-        <MapContainer 
-          center={mapCenter} 
-          zoom={zoom} 
-          style={{ height: '100%', width: '100%', backgroundColor: '#020617' }}
-          zoomControl={false}
-          attributionControl={false}
+    <div className="fixed inset-0 bg-black flex flex-col">
+      {/* Overlay UI elements can be added here if needed */}
+      <header className="flex-shrink-0 p-6 pointer-events-none z-10 flex flex-col gap-4">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between pointer-events-auto"
         >
-          <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          />
-          
-          <MapUpdater center={mapCenter} zoom={zoom} />
-
-          {/* User Location */}
-          {userLocation && (
-            <Marker position={userLocation} icon={userIcon} />
-          )}
-
-          {/* Cluster Group */}
-          <MarkerClusterGroup
-            chunkedLoading
-            showCoverageOnHover={false}
-            maxClusterRadius={40}
-            spiderfyOnMaxZoom={true}
+          <button 
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 bg-[rgba(255,255,255,0.1)] backdrop-blur-[20px] rounded-full flex items-center justify-center border border-[rgba(255,255,255,0.15)] shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] active:scale-95 transition-all"
           >
-            {filteredCities.map((city) => (
-              <Marker 
-                key={city.id} 
-                position={[city.lat, city.lng]} 
-                icon={createPricePin(city.price, selectedCity?.id === city.id)}
-                eventHandlers={{
-                  click: () => {
-                    setSelectedCity(city);
-                    setMapCenter([city.lat, city.lng]);
-                    setZoom(10);
-                  }
-                }}
-              />
-            ))}
-          </MarkerClusterGroup>
-        </MapContainer>
-
-        {/* Controls */}
-        <MapControls 
-          onZoomIn={() => setZoom(z => Math.min(z + 1, 18))}
-          onZoomOut={() => setZoom(z => Math.max(z - 1, 3))}
-          onLocate={handleLocate}
-          onCenter={() => {
-            setMapCenter([20, 0]);
-            setZoom(3);
-          }}
-        />
-
-        {/* Selected City Card */}
-        <AnimatePresence>
-          {selectedCity && (
-            <motion.div 
-              initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 100 }}
-              className="absolute bottom-6 left-6 right-6 z-[1000] max-w-[420px] mx-auto"
+            <ChevronLeft className="w-5 h-5 text-white" />
+          </button>
+          
+          {/* View Toggle */}
+          <div className="flex bg-black/50 backdrop-blur-md rounded-full p-1 border border-white/10 shadow-2xl">
+            <button
+              onClick={() => setViewMode('2d')}
+              className={`px-4 py-2 rounded-full flex items-center gap-2 text-xs font-bold transition-all ${viewMode === '2d' ? 'bg-emerald-500 text-black' : 'text-zinc-400 hover:text-white'}`}
             >
-              <BlurCard className="p-0 overflow-hidden rounded-[32px] border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
-                <div className="relative h-48">
-                  {cityImage ? (
-                    <img 
-                      src={cityImage} 
-                      alt={selectedCity.name} 
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-white/5 animate-pulse flex items-center justify-center">
-                      <Globe className="w-10 h-10 text-white/10" />
-                    </div>
-                  )}
-                  <button 
-                    onClick={() => setSelectedCity(null)}
-                    className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white"
-                  >
-                    <Plus className="w-5 h-5 rotate-45" />
-                  </button>
-                  <div className="absolute top-4 left-4 bg-primary/20 backdrop-blur-md px-3 py-1 rounded-full border border-primary/30 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-primary fill-primary" />
-                    <span className="text-[11px] font-bold text-white">Destaque</span>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h3 className="text-[24px] font-black text-white tracking-tight leading-tight">{selectedCity.name}</h3>
-                      <p className="text-subtext text-[12px] font-bold uppercase tracking-widest">{selectedCity.country}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-black text-subtext uppercase tracking-widest mb-1">Preço Médio</p>
-                      <p className="text-[20px] font-black text-primary tracking-tighter">R$ {selectedCity.price}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-4 text-subtext text-[12px] font-bold mb-6">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3 h-3 text-secondary fill-secondary" />
-                      <span>4.9</span>
-                    </div>
-                    <div className="w-1 h-1 bg-white/10 rounded-full" />
-                    <div className="flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-accent" />
-                      <span>{selectedCity.days} Dias recomendados</span>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <button 
-                      onClick={() => navigate(`/destination/${selectedCity.id}`)}
-                      className="h-14 rounded-2xl glass-card flex items-center justify-center gap-2 text-white font-bold hover:bg-white/5 transition-all"
-                    >
-                      Ver roteiro
-                    </button>
-                    <GlowButton 
-                      onClick={() => handlePlanTrip(selectedCity)}
-                      className="h-14 rounded-2xl"
-                    >
-                      <span className="text-[14px]">PLANEJAR</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </GlowButton>
-                  </div>
-                </div>
-              </BlurCard>
-            </motion.div>
+              <MapIcon className="w-4 h-4" /> 2D
+            </button>
+            <button
+              onClick={() => setViewMode('3d')}
+              className={`px-4 py-2 rounded-full flex items-center gap-2 text-xs font-bold transition-all ${viewMode === '3d' ? 'bg-emerald-500 text-black' : 'text-zinc-400 hover:text-white'}`}
+            >
+              <Globe className="w-4 h-4" /> 3D
+            </button>
+          </div>
+        </motion.div>
+
+        {isLoadingItinerary && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center justify-center gap-3 shadow-2xl pointer-events-auto"
+          >
+            <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-white text-sm font-semibold">Mapeando seu roteiro...</span>
+          </motion.div>
+        )}
+
+        {/* Search Bar */}
+        <motion.form 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          onSubmit={handleSearch}
+          className="pointer-events-auto relative"
+        >
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar cidade ou país..."
+            className="w-full h-12 bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl pl-12 pr-4 text-white placeholder:text-white/40 outline-none focus:border-emerald-500/50 transition-colors shadow-2xl"
+          />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+          {isSearching && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
           )}
-        </AnimatePresence>
-      </div>
-    </MobileContainer>
+        </motion.form>
+      </header>
+
+      <main className="flex-1 min-h-0 relative z-0">
+        {viewMode === '3d' ? (
+          <Globe3D 
+            onLocationSelect={handleLocationSelect} 
+            customPoints={customPoints.length > 0 ? customPoints : undefined}
+            initialCenter={globeCenter}
+            initialZoom={customPoints?.[0] ? 1.5 : undefined}
+            hideSearch={true}
+          />
+        ) : (
+          <Map2D 
+            points={customPoints}
+            initialCenter={globeCenter}
+            initialZoom={customPoints?.[0] ? 13 : 3}
+            onPointClick={handleLocationSelect}
+            isItinerary={!!location.state?.itinerary}
+          />
+        )}
+      </main>
+    </div>
   );
 };

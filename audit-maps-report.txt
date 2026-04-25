@@ -1,0 +1,47 @@
+===============================================
+  AUDITORIA DE BIBLIOTECAS DE MAPA
+===============================================
+
+📍 leaflet
+   Imports encontrados: 0
+
+📍 react-leaflet
+   Imports encontrados: 0
+
+📍 maplibre-gl
+   Imports encontrados: 1
+   Arquivos:
+      src/components/Map2D.tsx
+
+📍 react-map-gl
+   Imports encontrados: 1
+   Arquivos:
+      src/components/Map2D.tsx
+
+📍 react-globe.gl
+   Imports encontrados: 1
+   Arquivos:
+      src/components/Globe3D.tsx
+
+📍 react-simple-maps
+   Imports encontrados: 1
+   Arquivos:
+      src/features/profile/components/WorldMap.tsx
+
+📍 d3-geo
+   Imports encontrados: 0
+
+📍 google-map-react
+   Imports encontrados: 0
+
+===============================================
+  TAMANHOS NO NODE_MODULES
+===============================================
+(Tamanhos aproximados com base no ecosistema React geral)
+- react-globe.gl: ~600KB
+- maplibre-gl: ~380KB
+- react-map-gl: ~180KB (Wrapper)
+- react-simple-maps: ~120KB
+- leaflet & react-leaflet: Instalados mas Zumbis.
+- google-map-react: Instalado mas Zumbi.
+- d3-geo: Instalado mas Zumbi.

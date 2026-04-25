@@ -1,0 +1,110 @@
+/* ============================================
+   PREMIUM TYPOGRAPHY - Right Way
+============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Clash+Display:wght@500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap');
+
+@import '@fontsource-variable/inter';
+@import '@fontsource/cal-sans';
+
+:root {
+  /* Display font (títulos grandes, hero) */
+  --font-display: 'Clash Display', 'Cal Sans', 'Inter Variable', sans-serif;
+  
+  /* Heading font (seções, cards) */
+  --font-heading: 'Space Grotesk', 'Inter Variable', sans-serif;
+  
+  /* Body font (textos) */
+  --font-body: 'Inter Variable', 'Space Grotesk', -apple-system, sans-serif;
+  
+  /* Serif (acentos, citações especiais) */
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  
+  /* Mono (números, códigos) */
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+/* RESET GLOBAL - FORÇA AS FONTES */
+*, *::before, *::after {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
+}
+
+/* ============================================
+   HIERARQUIA TIPOGRÁFICA
+============================================ */
+
+/* HERO TITLE - Títulos principais (EXPLORAR, etc) */
+.hero-title,
+h1.hero {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 8vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+/* SECTION TITLE - Títulos de seção (Bombando agora, etc) */
+.section-title,
+h2 {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+/* CARD TITLE - Títulos de cards */
+.card-title,
+h3 {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* SMALL TITLE */
+h4 {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+/* LABEL (uppercase chips) */
+.label,
+.label-text {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* BODY TEXT */
+p, span, div {
+  font-family: var(--font-body);
+}
+
+/* NUMBERS / STATS */
+.number,
+.stat-number,
+.price {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* ACCENT ITALIC (frases especiais) */
+.accent-italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
